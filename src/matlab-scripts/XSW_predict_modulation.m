@@ -43,8 +43,6 @@ z={'H','He','Li','Be','B','C','N','O','F','Ne','Na','Mg','Al','Si','P','S','Cl',
 
 
 
-
-
 %%% Bragg angle
 thetaB = 90-4;
 

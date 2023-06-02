@@ -57,7 +57,7 @@ z={'H','He','Li','Be','B','C','N','O','F','Ne','Na','Mg','Al','Si','P','S','Cl',
 
 if plotter > 0
     disp(['##############' char(10) 'Measured orbital: ' z{Z} ' ' num2str(n) l js])
-end
+end 
 name = [num2str(Z) ' ' num2str(n) l js];
 
 line = [name(1:end-1) 'Z'];
