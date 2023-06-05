@@ -1,6 +1,6 @@
 from fractions import Fraction
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import constants
 import numpy
@@ -16,7 +16,7 @@ azimuthal_2_spin_dict: Dict[str, Union[str, List[float]]] = {
 
 def get_orbital(azimuthal_qn: int) -> Optional[str]:
     """Translates a intiger azimuthal quantum number to the correposing letter orbital.
-    
+
     Args:
         azimuthal_qn: the azimuthal quntim number
 
@@ -65,7 +65,7 @@ def q_param(
         azimuthal_qn: azimuthal quantum number
         spin_qn: spin quantum number
         plotter: verbosity and plotting
-    
+
     Returns:
         Optional[Tuple[List[NDArray]]]: params from file
     """
@@ -101,7 +101,3 @@ def q_param(
                 print(f"beta: {beta} \ngamma: {gamma} \ndelta: {delta} \nEb: {Eb}")
                 return (beta, gamma, delta, Eb)
         raise NotImplementedError(f"{name} not found in params.txt")
-
-
-if __name__ == "__main__":
-    q_param(Path("../fpfpp/q_param.txt"), 7, 2, 1, 1.5)
