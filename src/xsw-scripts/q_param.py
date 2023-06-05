@@ -8,9 +8,9 @@ from numpy.typing import NDArray
 
 azimuthal_2_spin_dict: Dict[str, Union[str, List[float]]] = {
     "s": "",
-    "p": [0.5, 1.5],
-    "d": [1.5, 2.5],
-    "f": [2.5, 3.5],
+    "p": (0.5, 1.5),
+    "d": (1.5, 2.5),
+    "f": (2.5, 3.5),
 }
 
 
@@ -97,7 +97,5 @@ def q_param(
                     Erow,
                     numpy.fromstring(param_file.readline(), numpy.float64, sep=" "),
                 ]
-
-                print(f"beta: {beta} \ngamma: {gamma} \ndelta: {delta} \nEb: {Eb}")
                 return (beta, gamma, delta, Eb)
         raise NotImplementedError(f"{name} not found in params.txt")

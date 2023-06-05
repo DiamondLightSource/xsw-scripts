@@ -1,9 +1,11 @@
+from typing import List
+
 # declare constants
-PLANCKS_CONSTANT = 6.63e-34
-SPEED_OF_LIGHT = 3e8
-EJ = 1.6e-19
-ANG = 1e-10
-Z = [
+H: float = 6.63e-34
+CSPEED: float = 3e8
+EJ: float = 1.6e-19
+ANG: float = 1e-10
+Z: List[str] = [
     "H",
     "He",
     "Li",

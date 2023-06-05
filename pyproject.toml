@@ -13,7 +13,8 @@ description = "Translating xsw data generation scripts to python."
 dependencies = [
     "typing-extensions;python_version<'3.9'",
     "click",
-    "numpy"
+    "numpy",
+    "scipy"
 ] # Add project dependencies here, e.g. ["click", "numpy"]
 dynamic = ["version"]
 license.file = "LICENSE"
