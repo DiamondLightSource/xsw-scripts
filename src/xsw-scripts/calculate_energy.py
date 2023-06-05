@@ -1,7 +1,8 @@
 import math
+
 import numpy as np
+from constants import ANG, CSPEED, EJ, H
 from numpy.typing import NDArray
-from constants import H, CSPEED, EJ, ANG
 
 
 def calculate_energy(

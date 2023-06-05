@@ -3,22 +3,10 @@ from typing import Any, Optional, Sequence
 
 import math
 import constants
-import numpy
+import numpy as np
 from q_param import q_param
 from calculate_energy import calculate_energy
 from scipy.interpolate import interp1d
-
-# Maybe use this maybe don't
-#
-# emitter_z: Optional[float] = None,
-# principle_q_num: Optional[int] = None,
-# azimuthal_q_num: Optional[int] = None,
-# total_spin: Optional[float] = None,
-# hkl_index: Optional[Sequence[int]] = None,
-# scattering_surface_angle: Optional[float] = None,
-# lattice_unit_cell: Optional[Sequence[float]] = None,
-# positions_of_atoms: Optional[Sequence[float]] = None,
-# gaussian_broadening: Optional[float] = None
 
 
 def predict_modulation(
@@ -70,19 +58,19 @@ def predict_modulation(
         azimuthal_qn = 0
         spin_qn = 0.5
         scattering_plane_angle = 0
-        hkl_index = numpy.array([1, 1, 1], dtype=numpy.float64)
+        hkl_index = np.array([1, 1, 1], dtype=np.float64)
         a_lat = 3.6149
-        lattice_unit_cell = numpy.array(
-            [a_lat, a_lat, a_lat, 90, 90, 90], dtype=numpy.float32
+        lattice_unit_cell = np.array(
+            [a_lat, a_lat, a_lat, 90, 90, 90], dtype=np.float32
         )  # lattice unit cell = [a b c, alpha beta gamma]
-        positions_of_atoms = numpy.array(
+        positions_of_atoms = np.array(
             [
                 [z_value, 0, 0, 0, 1],
                 [z_value, 0.5, 0.5, 0, 1],
                 [z_value, 0.0, 0.5, 0.5, 1],
                 [z_value, 0.5, 0.0, 0.5, 1],
             ],
-            dtype=numpy.float64,
+            dtype=np.float64,
         )
         width = 0.2
     elif len(args) == 9:
@@ -101,7 +89,56 @@ def predict_modulation(
         raise Exception(
             "You must either include the Z, n, l and js of the emitter orbital, or you must edit the script to include this information"
         )
+
     energy = calculate_energy(lattice_unit_cell, hkl_index, bragg_angle)
     bettab, gamtab, deltab, Eb = q_param(
-        data_dir / Path("q_param.txt"), z_value, principal_qn, azimuthal_qn, spin_qn, plotter
+        data_dir / Path("q_param.txt"),
+        z_value,
+        principal_qn,
+        azimuthal_qn,
+        spin_qn,
+        plotter,
     )
+
+    fwhmgaus = width
+
+    """
+        Non-dipolar corrections, assuming delta=0
+        %// C1=(1+Q)/(1-Q), C2=1/(1-Q), C3=phase shift
+        %// Row1=Ek, Row2=No correction, Row3=C1s, Row4=N1s, Row5=O1s, Row6=Fe2p3/2
+        %// Ref[1]: Trzhaskovskaya et al., Atomic Data and Nuclear Data Tables 77, 97 (2001)
+
+        %Q is defined as the forward/backward assymetry factor and includes gamma,
+        %delta, beta (delta however is set to 0 as the effect is very small !! ( ompare Ref[1]))
+        %%%% for Fe2p, compared to gamma, delta is one order or magnitude less big
+
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        %non dipolar corrections in the order: photon energy, 0 ,C1s, N1s, O1s,
+        %Fe2p3/2 (delta term newly inserted on 14.07.2014 to deal correctly with Fe2p)
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    """
+
+    QCE = 0
+    the = theta * np.pi / 180  # Theta angle in FIG1 in Ref[1]
+    phie = 0 * np.pi / 180  # Phi angle in FIG1 in Ref[1]
+
+    test_E = np.arange(1500, 5001, 10)
+
+    beta = np.interp(test_E, bettab[0, :], bettab[QCE + 1, :])
+    gamma = np.interp(test_E, gamtab[0, :], gamtab[QCE + 1, :])
+    delta = np.interp(test_E, deltab[0, :], deltab[QCE + 1, :])
+
+    energy_diff = test_E - energy + Eb[QCE]
+    min_index = np.argmin(np.abs(energy_diff))
+    bet, gam, del_ = beta[min_index], gamma[min_index], delta[min_index]
+
+    Q = (
+        (del_ * np.sin(the) * np.cos(phie))
+        + (gam * np.cos(phie) * np.sin(the) * np.cos(the) ** 2)
+    ) / (
+        1 + bet * 0.5 * (3 * np.cos(the) ** 2 - 1)
+    )  # new Q-value with delta terms to cope with Fe2p properly
+
+    C1 = (1 + Q) / (1 - Q)  # C 1s at 30 deg, 2.63keV
+    C2 = 1 / (1 - Q)
+    C3 = 0

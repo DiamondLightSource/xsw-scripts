@@ -54,7 +54,7 @@ def q_param(
     azimuthal_qn: int,
     spin_qn: float,
     plotter: Optional[int] = 1,
-) -> Optional[Tuple[List[NDArray]]]:
+) -> Optional[Tuple[NDArray]]:
     """
     Gets the q params from the data_file for a specific principle, azimuthal, and spin quantum number.
 
@@ -78,24 +78,33 @@ def q_param(
         name = f"{Z} {principal_qn}{get_orbital(azimuthal_qn)}{get_spin_as_string(azimuthal_qn,spin_qn)}"
         for line in param_file:
             if line.strip() == name:
-                Eb = param_file.readline()
+                Eb = numpy.fromstring(param_file.readline(), int, sep=" ")
+                print(Eb)
                 Erow = numpy.fromstring(param_file.readline(), int, sep=" ")
 
-                sigma = [
-                    Erow,
-                    numpy.fromstring(param_file.readline(), numpy.float64, sep=" "),
-                ]
-                beta = [
-                    Erow,
-                    numpy.fromstring(param_file.readline(), numpy.float64, sep=" "),
-                ]
-                gamma = [
-                    Erow,
-                    numpy.fromstring(param_file.readline(), numpy.float64, sep=" "),
-                ]
-                delta = [
-                    Erow,
-                    numpy.fromstring(param_file.readline(), numpy.float64, sep=" "),
-                ]
+                sigma = numpy.stack(
+                    [
+                        Erow,
+                        numpy.fromstring(param_file.readline(), numpy.float64, sep=" "),
+                    ]
+                )
+                beta = numpy.stack(
+                    [
+                        Erow,
+                        numpy.fromstring(param_file.readline(), numpy.float64, sep=" "),
+                    ]
+                )
+                gamma = numpy.stack(
+                    [
+                        Erow,
+                        numpy.fromstring(param_file.readline(), numpy.float64, sep=" "),
+                    ]
+                )
+                delta = numpy.stack(
+                    [
+                        Erow,
+                        numpy.fromstring(param_file.readline(), numpy.float64, sep=" "),
+                    ]
+                )
                 return (beta, gamma, delta, Eb)
         raise NotImplementedError(f"{name} not found in params.txt")
