@@ -175,10 +175,8 @@ def predict_modulation(
     # Atomic number, x, y, z, occupancy (Mono Si)
 
     nam = xyzm.shape[0]
-    print(xyzm[:, 1:4].shape)
 
-    ## TODO Get guidence
-    xyzm[:, 1:4] = xyzm[:, 1:4] - np.ones((nam, 3)) * 0.125
+    xyzm[:, 1:4] = xyzm[:, 1:4] - np.ones((nam, 1)) * 0.125
     # Shift the origin to the inversion center
 
     # Unit cell volumes, Bragg plane spacings, and Bragg angles
@@ -244,15 +242,17 @@ def predict_modulation(
         / ucvs
     )
 
-    dhs = np.sqrt(np.sum((hs * rlvs) ** 2)) ** (
+    dhs = np.sqrt(np.sum((hs @ rlvs) ** 2)) ** (
         -1
     )  # Bragg plane spacing for hkl reflection in A, sample.
+
     dhm = lpm[0] / np.sqrt(
-        np.sum(hm * hm.T)
+        np.sum(hm @ hm)
     )  # Bragg plane spacing for hkl reflection in A, mono Si.
 
     thbs = np.arcsin(dhs ** (-1) * (lambda_ / 2))  # Bragg angle in rad, sample.
     thbm = np.arcsin(dhm ** (-1) * (lambda_ / 2))  # Bragg angle in rad, mono Si.
+    print(thbs)
     # z=['Ag' 'Cu' 'Si'];
     # Si','P','S','Cl','Ar','K','Ca','Sc','Ti','V','Cr','Mn','Fe','Co','Ni','Cu','Zn','Ga','Ge','As','Se','Br','Kr','Rb','Sr','Y','Zr','Nb','Mo','Tc','Ru','Rh','Pd','Ag','Cd','In','Sn','Sb','Te','I','Xe','Cs','Ba','La','Ce','Pr','Nd','Pm','Sm','Eu','Gd','Tb','Dy','Ho','Er','Tm','Yb','Lu','Hf','Ta','W','Re','Os','Ir','Pt','Au','Hg','Tl','Pb','Bi','Po','At','Rn','Fr','Ra','Ac','Th','Pa','U','Np','Pu','Am','Cm','Bk','Cf','Es','Fm','Md','No'];
 
@@ -283,11 +283,12 @@ def predict_modulation(
         )
         f0s[i] = xyzs[i, 0] + fps[i] + 1j * fpps[i]
 
-    hrs = np.dot(xyzs[:, 1:4], hs.T)
-    Fhs = (np.exp(2 * np.pi * 1j * hrs.T) * (fs * xyzs[:, 4])) * np.exp(
+    hrs = xyzs[:, 1:4] @ hs
+    print("//////////////////////////////////////////////////////")
+    Fhs = (np.exp(2 * np.pi * 1j * hrs.T) @ (fs * xyzs[:, 4])) * np.exp(
         -DWBs / dhs**2 / 4
     )
-    Fhbs = (np.exp(-2 * np.pi * 1j * hrs.T) * (fs * xyzs[:, 4])) * np.exp(
+    Fhbs = (np.exp(-2 * np.pi * 1j * hrs.T) @ (fs * xyzs[:, 4])) * np.exp(
         -DWBs / dhs**2 / 4
     )
     F0s = np.sum(f0s * xyzs[:, 4]) * np.exp(-DWBs / dhs**2 / 4)
@@ -307,7 +308,6 @@ def predict_modulation(
     f0m = np.zeros(nam)
 
     for i in range(nam):
-        print(i)
         fpfppdata = np.loadtxt(
             data_dir / Path(constants.Z[int(xyzm[i, 0])].lower() + ".nff"),
             delimiter="\t",
@@ -323,11 +323,11 @@ def predict_modulation(
         )
         f0m[i] = xyzm[i, 0] + fpm[i] + 1j * fppm[i]
 
-    hrm = np.dot(xyzm[:, 1:4], hm.T)
-    Fhm = (np.exp(2 * np.pi * 1j * hrm.T) * (fm * xyzm[:, 4])) * np.exp(
+    hrm = xyzm[:, 1:4] @ hm
+    Fhm = (np.exp(2 * np.pi * 1j * hrm.T) @ (fm * xyzm[:, 4])) * np.exp(
         -DWBm / dhm**2 / 4
     )
-    Fhbm = (np.exp(-2 * np.pi * 1j * hrm.T) * (fm * xyzm[:, 4])) * np.exp(
+    Fhbm = (np.exp(-2 * np.pi * 1j * hrm.T) @ (fm * xyzm[:, 4])) * np.exp(
         -DWBm / dhm**2 / 4
     )
     F0m = np.sum(f0m * xyzm[:, 4]) * np.exp(-DWBm / dhm**2 / 4)
@@ -365,7 +365,8 @@ def predict_modulation(
     ewidths = (
         energy * np.abs(np.real(chihs) * Ps) / np.sin(thbs) ** 2 / np.sqrt(np.abs(bs))
     )
-    print(ewidths)
+    print(chihs)
+
     #########################################
     # These parameters can be played with
     ########################################
@@ -378,6 +379,7 @@ def predict_modulation(
     ################################
 
     nsteps = ((des2 - des1) / degaus).round(decimals=0)
+    print(nsteps)
     a1 = np.arange(1, nsteps + 1)
     des = des1 + (a1 - 1) * degaus
     etas = (
@@ -386,7 +388,7 @@ def predict_modulation(
         / np.sqrt(np.abs(bs) * chihs * chihbs)
     )
 
-    xs = np.zeros(nsteps)
+    xs = np.zeros(int(nsteps))
     mask_pos = np.real(etas) >= 0
     mask_neg = np.real(etas) < 0
 
@@ -417,9 +419,11 @@ def predict_modulation(
     ewidthm = (
         energy * np.abs(np.real(chihm) * Pm) / np.sin(thbm) ** 2 / np.sqrt(np.abs(bm))
     )
+    print(chihbm.shape)
+
     dem1 = -4 * ewidthm
     dem2 = 10 * ewidthm
-    nstepm = round((dem2 - dem1) / degaus)
+    nstepm = ((dem2 - dem1) / degaus).round()
     a1 = np.arange(1, nstepm + 1)
     dem = dem2 - (a1 - 1) * degaus  # Inverted for convolution
     etam = (
@@ -428,7 +432,7 @@ def predict_modulation(
         / np.sqrt(np.abs(bm) * chihm * chihbm)
     )
 
-    xm = np.zeros(nstepm)
+    xm = np.zeros(int(nstepm))
     mask_pos = np.real(etam) >= 0
     mask_neg = np.real(etam) < 0
 
@@ -462,6 +466,8 @@ def predict_modulation(
     # Fit rocking curve
     #########################
     escale = width
+    print("##################################")
+    print(energy)
     eoffset = energy  # X0[np.argmax(Y)] - 0.6
     rscale = 1  # (np.max(datar[:,1]) - 0.5 * (datar[-1,1] + datar[0,1])) / 0.9 * 3
     rbgoffset = 0  # 0.5 * (datar[-1,1] + datar[0,1]) / rscale
@@ -469,10 +475,39 @@ def predict_modulation(
     steps = 100
 
     # TODO look at this section again
+    def f1(p):
+        p = np.array(
+            [
+                p[0] / multiples_p[0],
+                p[1] / multiples_p[1],
+                p[2] / multiples_p[2],
+                p[3] / multiples_p[3],
+                p[4] / multiples_p[4],
+            ]
+        )
+
+        fwhmgaus = p[0]
+        if fwhmgaus > 0:
+            gaus = np.exp(-4 * np.log(2) * (egaus / fwhmgaus) ** 2)
+            gaus = gaus / np.sum(gaus)
+            gaus = gaus * areagaus
+            a1 = np.arange(1, nsteps + ngaus)
+            desg = des[0] - (rangegaus + egaus[0]) + a1 * degaus
+            rsga = np.convolve(gaus, rsgm)
+        else:
+            desg = des
+            rsga = rsgm
+
+        a1 = np.arange(1, nstepm + desg.shape[0])
+        desgm = desg[0] - (np.max(dem) - cfwhmm) + a1 * degaus
+
+        e = desgm
+
+        return e
 
     # Define the objective function
     def objective(p):
-        return p
+        return f1(p)
 
     # Define the scaling factors
     multiples_p = np.array([10, 1e-3, 1e-4, 1e3, 1e2])
@@ -505,10 +540,10 @@ def predict_modulation(
             (eoffset + 1) * multiples_p[1],
             rscale * 10 * multiples_p[2],
             1.0 * multiples_p[3],
-            rbgoffset * 10 * multiples_p[4],
+            rbgoffset * 10 * multiples_p[4] + 0.0000000001,
         ]
     )
-
+    print(f"{lb}:{ub}")
     # Perform the least squares optimization
     result = least_squares(objective, p0, bounds=(lb, ub), method="trf")
 
@@ -585,8 +620,6 @@ def predict_modulation(
 
     # TODO where if f2 defined
 
-    v2 = f2(q0)
-
     q = np.array([1, fh0, ph0])
 
     ys = rs * C1 + 2 * C2 * q[1] * np.sqrt(rs) * np.cos(
@@ -600,6 +633,26 @@ def predict_modulation(
     else:
         ysg = ys
     ysgm = np.convolve(rmn, ysg, mode="full") + 1
+
+    def f2(q):
+        ys = rs * C1 + 2 * C2 * q[1] * np.sqrt(rs) * np.cos(
+            C3 + np.arctan2(np.imag(xs), np.real(xs)) - 2 * np.pi * q[2]
+        )
+
+        if fwhmgaus > 0:
+            ysg = np.convolve(gaus, ys)
+        else:
+            ysg = ys
+
+        ysgm = np.convolve(rmn, ysg) + 1
+
+        e = ysgm
+
+        return e
+
+    rsga = np.convolve(gaus, rsgm)
+
+    v2 = f2(q0)
 
     # Screen output of fitting results for yield
     if plotter > 0:
@@ -715,58 +768,6 @@ def predict_modulation(
     # fprintfMat(dataoutfile, dataout, '%.6f', datatitle)
     # fprintfMat(fitoutfile, fitout, '%.6f', fittitle)
     # xs2pdf(0, figurefile)
-
-    ########################
-    #   Applied Functions
-    ########################
-
-    def f1(p):
-        p = np.array(
-            [
-                p[0] / multiples_p[0],
-                p[1] / multiples_p[1],
-                p[2] / multiples_p[2],
-                p[3] / multiples_p[3],
-                p[4] / multiples_p[4],
-            ]
-        )
-
-        fwhmgaus = p[0]
-        if fwhmgaus > 0:
-            gaus = np.exp(-4 * np.log(2) * (egaus / fwhmgaus) ** 2)
-            gaus = gaus / np.sum(gaus)
-            gaus = gaus * areagaus
-            a1 = np.arange(1, nsteps + ngaus)
-            desg = des[0] - (rangegaus + egaus[0]) + a1 * degaus
-            rsga = np.convolve(gaus, rsgm)
-        else:
-            desg = des
-            rsga = rsgm
-
-        a1 = np.arange(1, nstepm + desg.shape[0])
-        desgm = desg[0] - (np.max(dem) - cfwhmm) + a1 * degaus
-
-        e = desgm
-
-        return e
-
-    def f2(q):
-        ys = rs * C1 + 2 * C2 * q[1] * np.sqrt(rs) * np.cos(
-            C3 + np.arctan2(np.imag(xs), np.real(xs)) - 2 * np.pi * q[2]
-        )
-
-        if fwhmgaus > 0:
-            ysg = np.convolve(gaus, ys)
-        else:
-            ysg = ys
-
-        ysgm = np.convolve(rmn, ysg) + 1
-
-        e = ysgm
-
-        return e
-
-    rsga = np.convolve(gaus, rsgm)
 
     #########################################
     ########   Alternative Plotter   ########
