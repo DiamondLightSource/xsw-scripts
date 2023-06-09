@@ -8,7 +8,7 @@ from numpy.typing import NDArray
 def calculate_energy(
     lps: NDArray[np.float64], hkl_plane: NDArray[np.float64], Bragg_angle: float
 ) -> float:
-    """Calculates the energy TODO
+    """Calculates the energy
 
     Args:
         lps: lattice unit cell
@@ -17,7 +17,7 @@ def calculate_energy(
     Returns:
         floats: energy claculated
     """
-    lps[3:6] = lps[3:6] * math.pi / 180
+    lps[3:6] = lps[3:6] * np.pi / 180
     ucvs: float = (
         lps[0]
         * lps[1]

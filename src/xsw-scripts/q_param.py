@@ -42,7 +42,8 @@ def get_spin_as_string(azimuthal_qn: int, spin_qn: float) -> Optional[str]:
     if isinstance(spins, str):
         return spins
     elif spin_qn in spins:
-        return Fraction(spin_qn).__str__()
+        numerator, denominator = spin_qn.as_integer_ratio()
+        return f"{numerator}/{denominator}"
 
     raise Exception(f"the {orbital} orbital cannot have a js of: {spin_qn}")
 
