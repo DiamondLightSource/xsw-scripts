@@ -4,11 +4,8 @@ from predict_modulation import predict_modulation
 from q_param import q_param
 import numpy as np
 
-q_param(Path("./fpfpp/q_param.txt"), 7, 2, 1, 1.5)
-
-
 predict_modulation(
-    Path("./fpfpp/"),
+    Path("src/xsw-scripts/fpfpp/"),
     1,
     1,
     18,
