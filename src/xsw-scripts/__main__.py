@@ -1,15 +1,18 @@
 from pathlib import Path
 
+import time
 from predict_modulation import predict_modulation
-from q_param import q_param
 import numpy as np
 
+
+start = time.monotonic()
 predict_modulation(
+    Path("src/xsw-scripts/fpfpp/"),
     Path("src/xsw-scripts/fpfpp/"),
     1,
     1,
     18,
-    1,
+    True,
     8,
     1,
     0,
@@ -27,3 +30,5 @@ predict_modulation(
     ),
     0.2,
 )
+stop = time.monotonic()
+print(f"Time: {stop - start}")

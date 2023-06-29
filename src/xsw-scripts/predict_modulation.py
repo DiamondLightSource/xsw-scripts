@@ -1,17 +1,17 @@
 from pathlib import Path
-from typing import Any, Optional, Sequence
+from typing import Any, Tuple
 
-import math
 import constants
 import numpy as np
+from numpy.typing import NDArray
 from q_param import q_param
 from calculate_energy import calculate_energy
-from scipy.interpolate import interp1d
 from scipy.optimize import least_squares
 import matplotlib.pyplot as plt
 
-NUMPY_DTYPE = np.float32
-THETAB = 90 - 4
+NUMPY_DTYPE = np.float64
+COMPLEX_DTYPE = np.complex128
+THETAB = 90 - 4  # thetaB
 
 
 def predict_modulation(
@@ -65,7 +65,7 @@ def predict_modulation(
         hs = np.array([1, 1, 1])
         a_lat = 3.6149
         lps0 = np.array(
-            [a_lat, a_lat, a_lat, 90, 90, 90], dtype=np.float32
+            [a_lat, a_lat, a_lat, 90, 90, 90], dtype=NUMPY_DTYPE
         )  # lattice unit cell = [a b c, alpha beta gamma]
         xyzs = np.array(
             [
@@ -77,6 +77,7 @@ def predict_modulation(
             dtype=NUMPY_DTYPE,
         )
         width = 0.2
+        energy = 2971
     elif len(args) == 9:
         (
             atom_type,
@@ -89,12 +90,13 @@ def predict_modulation(
             xyzs,
             width,
         ) = args
+        # TODO change here to avoid copy
+        energy = calculate_energy(lps0.copy(), hs, THETAB)
     else:
         raise Exception(
             "You must either include the Z, n, l and js of the emitter orbital, or you must edit the script to include this information"
         )
 
-    energy = calculate_energy(lps0, hs, THETAB)
     bettab, gamtab, deltab, Eb = q_param(
         data_dir / Path("q_param.txt"),
         atom_type,
@@ -176,13 +178,16 @@ def predict_modulation(
 
     nam = xyzm.shape[0]
 
-    xyzm[:, 1:4] = xyzm[:, 1:4] - np.ones((nam, 1)) * 0.125
+    # TODO ask about this
+    xyzm[:, 1:4] = xyzm[:, 1:4] - np.ones((nam, 3)) * 0.125
     # Shift the origin to the inversion center
 
     # Unit cell volumes, Bragg plane spacings, and Bragg angles
-    lps = np.copy(lps0)
+
+    # TODO check if this copy is necessary here and for lpm0
+    lps = lps0.copy()
     lps[3:6] = lps[3:6] * np.pi / 180  # Change deg to rad, sample
-    lpm = np.copy(lpm0)
+    lpm = lpm0.copy()
     lpm[3:6] = lpm[3:6] * np.pi / 180  # Change deg to rad, mono
     ucvs = (
         lps[0]
@@ -247,12 +252,12 @@ def predict_modulation(
     )  # Bragg plane spacing for hkl reflection in A, sample.
 
     dhm = lpm[0] / np.sqrt(
-        np.sum(hm @ hm)
+        np.sum(hm @ hm.T)
     )  # Bragg plane spacing for hkl reflection in A, mono Si.
 
     thbs = np.arcsin(dhs ** (-1) * (lambda_ / 2))  # Bragg angle in rad, sample.
     thbm = np.arcsin(dhm ** (-1) * (lambda_ / 2))  # Bragg angle in rad, mono Si.
-    print(thbs)
+
     # z=['Ag' 'Cu' 'Si'];
     # Si','P','S','Cl','Ar','K','Ca','Sc','Ti','V','Cr','Mn','Fe','Co','Ni','Cu','Zn','Ga','Ge','As','Se','Br','Kr','Rb','Sr','Y','Zr','Nb','Mo','Tc','Ru','Rh','Pd','Ag','Cd','In','Sn','Sb','Te','I','Xe','Cs','Ba','La','Ce','Pr','Nd','Pm','Sm','Eu','Gd','Tb','Dy','Ho','Er','Tm','Yb','Lu','Hf','Ta','W','Re','Os','Ir','Pt','Au','Hg','Tl','Pb','Bi','Po','At','Rn','Fr','Ra','Ac','Th','Pa','U','Np','Pu','Am','Cm','Bk','Cf','Es','Fm','Md','No'];
 
@@ -263,28 +268,29 @@ def predict_modulation(
     f0 = np.loadtxt(data_dir / Path("f0_all_free_atoms.txt"))
     fps = np.zeros(nas)
     fpps = np.zeros(nas)
-    fs = np.zeros(nas)
-    f0s = np.zeros(nas)
+    fs = np.zeros(nas, dtype="complex_")
+    f0s = np.zeros(nas, dtype="complex_")
 
     for i in range(nas):
-        print(constants.Z[int(xyzs[i, 0])])
+        # TODO re think this part
         fpfppdata = np.loadtxt(
-            data_dir / Path(constants.Z[int(xyzs[i, 0])].lower() + ".nff"),
+            data_dir / Path(constants.Z[int(xyzs[i, 0]) - 1].lower() + ".nff"),
             delimiter="\t",
             skiprows=1,
             usecols=(0, 1, 2),
         )
+
         fps[i] = np.interp(energy, fpfppdata[:, 0], fpfppdata[:, 1]) - xyzs[i, 0]
         fpps[i] = np.interp(energy, fpfppdata[:, 0], fpfppdata[:, 2])
         fs[i] = (
-            np.interp(0.5 * dhs ** (-1), f0[:, 0], f0[:, int(xyzs[i, 0]) - 1])
+            np.interp(0.5 * dhs ** (-1), f0[:, 0], f0[:, int(xyzs[i, 0]) - 2])
             + fps[i]
             + 1j * fpps[i]
         )
         f0s[i] = xyzs[i, 0] + fps[i] + 1j * fpps[i]
 
-    hrs = xyzs[:, 1:4] @ hs
-    print("//////////////////////////////////////////////////////")
+    hrs = xyzs[:, 1:4] @ hs.T
+
     Fhs = (np.exp(2 * np.pi * 1j * hrs.T) @ (fs * xyzs[:, 4])) * np.exp(
         -DWBs / dhs**2 / 4
     )
@@ -304,12 +310,13 @@ def predict_modulation(
 
     fpm = np.zeros(nam)
     fppm = np.zeros(nam)
-    fm = np.zeros(nam)
-    f0m = np.zeros(nam)
+    fm = np.zeros(nam, dtype="complex_")
+    f0m = np.zeros(nam, dtype="complex_")
 
     for i in range(nam):
+        # TODO Re think this part
         fpfppdata = np.loadtxt(
-            data_dir / Path(constants.Z[int(xyzm[i, 0])].lower() + ".nff"),
+            data_dir / Path(constants.Z[int(xyzm[i, 0]) - 1].lower() + ".nff"),
             delimiter="\t",
             skiprows=1,
             usecols=(0, 1, 2),
@@ -317,13 +324,13 @@ def predict_modulation(
         fpm[i] = np.interp(energy, fpfppdata[:, 0], fpfppdata[:, 1]) - xyzm[i, 0]
         fppm[i] = np.interp(energy, fpfppdata[:, 0], fpfppdata[:, 2])
         fm[i] = (
-            np.interp(0.5 * dhm ** (-1), f0[:, 0], f0[:, int(xyzm[i, 0]) - 1])
+            np.interp(0.5 * dhm ** (-1), f0[:, 0], f0[:, int(xyzm[i, 0]) - 2])
             + fpm[i]
             + 1j * fppm[i]
         )
         f0m[i] = xyzm[i, 0] + fpm[i] + 1j * fppm[i]
 
-    hrm = xyzm[:, 1:4] @ hm
+    hrm = xyzm[:, 1:4] @ hm.T
     Fhm = (np.exp(2 * np.pi * 1j * hrm.T) @ (fm * xyzm[:, 4])) * np.exp(
         -DWBm / dhm**2 / 4
     )
@@ -342,15 +349,17 @@ def predict_modulation(
     ############################################
 
     areagaus = 1
-    ngaus = 1010
+    ngaus = float(1010)
 
     # if fwhmgaus > 0:
     rangegaus = 20  # (max(datar[:, 1]) - min(datar[:, 1])) * 2
     degaus = rangegaus / (ngaus - 1)
-    egaus = np.arange(-np.floor((ngaus - 1) / 2), np.ceil((ngaus - 1) / 2) + 1) * degaus
+    egaus = (
+        np.arange(-round((ngaus - 1) / 2) - 1, ngaus - round((ngaus - 1) / 2) - 1)
+        * degaus
+    )
     # else:
     # degaus = 0.005
-
     #########################
     # Sample rocking curve
     ############################
@@ -365,7 +374,6 @@ def predict_modulation(
     ewidths = (
         energy * np.abs(np.real(chihs) * Ps) / np.sin(thbs) ** 2 / np.sqrt(np.abs(bs))
     )
-    print(chihs)
 
     #########################################
     # These parameters can be played with
@@ -379,7 +387,7 @@ def predict_modulation(
     ################################
 
     nsteps = ((des2 - des1) / degaus).round(decimals=0)
-    print(nsteps)
+
     a1 = np.arange(1, nsteps + 1)
     des = des1 + (a1 - 1) * degaus
     etas = (
@@ -388,7 +396,7 @@ def predict_modulation(
         / np.sqrt(np.abs(bs) * chihs * chihbs)
     )
 
-    xs = np.zeros(int(nsteps))
+    xs = np.zeros(int(nsteps), dtype="complex_")
     mask_pos = np.real(etas) >= 0
     mask_neg = np.real(etas) < 0
 
@@ -419,7 +427,6 @@ def predict_modulation(
     ewidthm = (
         energy * np.abs(np.real(chihm) * Pm) / np.sin(thbm) ** 2 / np.sqrt(np.abs(bm))
     )
-    print(chihbm.shape)
 
     dem1 = -4 * ewidthm
     dem2 = 10 * ewidthm
@@ -432,7 +439,7 @@ def predict_modulation(
         / np.sqrt(np.abs(bm) * chihm * chihbm)
     )
 
-    xm = np.zeros(int(nstepm))
+    xm = np.zeros(int(nstepm), dtype="complex_")
     mask_pos = np.real(etam) >= 0
     mask_neg = np.real(etam) < 0
 
@@ -466,8 +473,6 @@ def predict_modulation(
     # Fit rocking curve
     #########################
     escale = width
-    print("##################################")
-    print(energy)
     eoffset = energy  # X0[np.argmax(Y)] - 0.6
     rscale = 1  # (np.max(datar[:,1]) - 0.5 * (datar[-1,1] + datar[0,1])) / 0.9 * 3
     rbgoffset = 0  # 0.5 * (datar[-1,1] + datar[0,1]) / rscale
@@ -475,7 +480,7 @@ def predict_modulation(
     steps = 100
 
     # TODO look at this section again
-    def f1(p):
+    def f1(p: NDArray) -> Tuple[NDArray, ...]:
         p = np.array(
             [
                 p[0] / multiples_p[0],
@@ -503,11 +508,7 @@ def predict_modulation(
 
         e = desgm
 
-        return e
-
-    # Define the objective function
-    def objective(p):
-        return f1(p)
+        return e, a1
 
     # Define the scaling factors
     multiples_p = np.array([10, 1e-3, 1e-4, 1e3, 1e2])
@@ -543,13 +544,23 @@ def predict_modulation(
             rbgoffset * 10 * multiples_p[4] + 0.0000000001,
         ]
     )
-    print(f"{lb}:{ub}")
+
     # Perform the least squares optimization
-    result = least_squares(objective, p0, bounds=(lb, ub), method="trf")
+    # result = least_squares(f1, p0, bounds=(lb, ub), method="trf")
 
     # Extract the optimized parameter values
-    p = result.x / multiples_p
-    v = result.cost
+
+    p = p0
+    v, a1 = f1(p0)
+    p = np.array(
+        [
+            p[0] / multiples_p[0],
+            p[1] / multiples_p[1],
+            p[2] / multiples_p[2],
+            p[3] / multiples_p[3],
+            p[4] / multiples_p[4],
+        ]
+    )
     dedth = energy * (np.pi / 180) * np.cos(thbs) / np.sin(thbs)
 
     # Screen output of fitting results for rocking curve
@@ -638,7 +649,7 @@ def predict_modulation(
         ys = rs * C1 + 2 * C2 * q[1] * np.sqrt(rs) * np.cos(
             C3 + np.arctan2(np.imag(xs), np.real(xs)) - 2 * np.pi * q[2]
         )
-
+        # TODO look here for issue
         if fwhmgaus > 0:
             ysg = np.convolve(gaus, ys)
         else:
@@ -665,17 +676,17 @@ def predict_modulation(
         print("           C3 = phase shift =", C3)
 
     # Clear the current figure
-    plt.clf()
+    # plt.clf()
 
     # Create a figure
-    fig = plt.figure()
+    # fig = plt.figure()
 
     # Set figure properties
     # fig.set_figwidth(12)
     # fig.set_figheight(6)
 
     # Create subplot 1
-    plt.subplot(1, 2, 1)
+    # plt.subplot(1, 2, 1)
 
     # Set subplot properties
     # ax = plt.gca()
@@ -694,7 +705,7 @@ def predict_modulation(
     # ax.tick_params(axis='both', which='major', labelsize=8)
 
     # Create subplot 2
-    plt.subplot(1, 2, 2)
+    # plt.subplot(1, 2, 2)
 
     # Set subplot properties
     # ax = plt.gca()
@@ -716,10 +727,9 @@ def predict_modulation(
     # plt.subplots_adjust(wspace=0.3)
 
     # Show the plot
-    plt.show()
 
     # Create subplot 2
-    plt.subplot(1, 2, 2)
+    # plt.subplot(1, 2, 2)
 
     # Set subplot properties
     # ax = plt.gca()
@@ -744,9 +754,6 @@ def predict_modulation(
 
     # Adjust the spacing between subplots
     # plt.subplots_adjust(wspace=0.3)
-
-    # Show the plot
-    plt.show()
 
     ##################################
     # Save the data, fit and figure
@@ -775,8 +782,6 @@ def predict_modulation(
 
     if plotter == 1:
         plt.figure(100)
-        plt.clf()
-        plt.figure(100)
 
         # Set background color (optional)
         # plt.gca().set_facecolor((1, 1, 1))
@@ -795,7 +800,6 @@ def predict_modulation(
         plt.xticks(fontsize=20)
         plt.yticks(fontsize=20)
 
-        plt.show()
         # plt.text(0.6, 1,
         #  '                 Filename: ' + dataprefix + '\n\n' +
         #  'General Information: ' + '\n' +
@@ -816,9 +820,9 @@ def predict_modulation(
         #  fontsize=10, verticalalignment='top', horizontalalignment='left', fontfamily='monospace')
 
         plt.axis([-3, 5, -0.1, 3.5])
+        plt.show()
         # plt.savefig(dataprefix + '.pdf')
         # plt.savefig(dataprefix + '.svg')
-        plt.show()
 
     the_out = np.column_stack((desgm, ysgm))
     the_nix_out = np.column_stack((desgm, rsga))

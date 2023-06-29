@@ -124,6 +124,7 @@ end
 
 
 
+
 QCE =  0; 
 % Analyser-beam geometry
 the = theta*pi/180;      %Theta angle in FIG1 in Ref[1]
@@ -145,6 +146,7 @@ Q=((del*sin(the)*cos(phie))+(gam*cos(phie)*sin(the)*cos(the)^2))/(1+bet*0.5*(3*c
 C1=(1+Q)/(1-Q); %C 1s at 30 deg, 2.63keV
 C2=1/(1-Q);
 C3=0;
+
 
 
 
@@ -224,13 +226,14 @@ thbm=asin(dhm^(-1)*lambda/2); %Bragg angle in rad, mono Si
 %Structure factors and chi values, sample
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-f0=dlmread([datadir 'f0_all_free_atoms.txt']);
+f0=readmatrix('/scratch/nal89286/xsw-script/src/xsw-scripts/fpfpp/f0_all_free_atoms.txt');
 
 fps=ones(nas,1)*0;fpps=ones(nas,1)*0;
 fs=ones(nas,1)*0;f0s=ones(nas,1)*0;
 for i=1:nas
     %[datadir z{xyzs(i,1)} '.nff']
-  fpfppdata=dlmread([datadir z{xyzs(i,1)} '.nff'],'\t',1,0);
+  disp(lower(z{xyzs(i,1)}))
+  fpfppdata=dlmread(['/scratch/nal89286/xsw-script/src/xsw-scripts/fpfpp/' lower(z{xyzs(i,1)}) '.nff'],'\t',1,0);
   %fpfppdata(:,2)=fpfppdata(:,2)*1.05;
   %whos fpfppdata
   fps(i)=interp1(fpfppdata(:,1),fpfppdata(:,2),energy)-xyzs(i,1);
@@ -257,7 +260,7 @@ chi0s=-gams*F0s;
 fpm=ones(nam,1)*0;fppm=ones(nam,1)*0;
 fm=ones(nam,1)*0;f0m=ones(nam,1)*0;
 for i=1:nam
-  fpfppdata=dlmread([datadir z{xyzm(i,1)} '.nff'],'\t',1,0);
+  fpfppdata=dlmread(['/scratch/nal89286/xsw-script/src/xsw-scripts/fpfpp/' lower(z{xyzm(i,1)}) '.nff'],'\t',1,0);
   %fpfppdata(:,2:3)=fpfppdata(:,2:3)*0.5;
   fpm(i)=interp1(fpfppdata(:,1),fpfppdata(:,2),energy)-xyzm(i,1);
   fppm(i)=interp1(fpfppdata(:,1),fpfppdata(:,3),energy);
@@ -283,6 +286,8 @@ ngaus=1010;
 %if fwhmgaus>0 
   rangegaus=20;%(max(datar(:,1))-min(datar(:,1)))*2;
   degaus=rangegaus/(ngaus-1);
+  disp(-round((ngaus-1)/2));
+  disp((ngaus-round((ngaus-1)/2)-1));
   egaus=[-round((ngaus-1)/2):(ngaus-round((ngaus-1)/2)-1)]*degaus;
 %else
 %  degaus=0.005;
@@ -304,6 +309,7 @@ ewidths=energy*abs(real(chihs)*Ps)/sin(thbs)^2/sqrt(abs(bs));
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % These parameters can be played with
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+disp(ewidths)
 des1=-10*ewidths; 
 des2=10*ewidths;
 colour = 'g';

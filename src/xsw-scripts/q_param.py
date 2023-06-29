@@ -1,12 +1,12 @@
 from fractions import Fraction
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, Optional, Tuple, Union
 
 import constants
 import numpy
 from numpy.typing import NDArray
 
-azimuthal_2_spin_dict: Dict[str, Union[str, List[float]]] = {
+azimuthal_2_spin_dict: Dict[str, Union[str, Tuple[float]]] = {
     "s": "",
     "p": (0.5, 1.5),
     "d": (1.5, 2.5),
@@ -80,7 +80,6 @@ def q_param(
         for line in param_file:
             if line.strip() == name:
                 Eb = numpy.fromstring(param_file.readline(), int, sep=" ")
-                print(Eb)
                 Erow = numpy.fromstring(param_file.readline(), int, sep=" ")
 
                 sigma = numpy.stack(

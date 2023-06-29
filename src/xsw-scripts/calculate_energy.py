@@ -15,7 +15,7 @@ def calculate_energy(
         hkl_plane: hkl plane
         bragg_angle: bragg angle
     Returns:
-        floats: energy claculated
+        float: energy calculated
     """
     lps[3:6] = lps[3:6] * np.pi / 180
     ucvs: float = (
