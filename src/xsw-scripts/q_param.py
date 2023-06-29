@@ -1,10 +1,9 @@
-from fractions import Fraction
 from pathlib import Path
 from typing import Dict, Optional, Tuple, Union
 
 import constants
-import numpy
-from numpy.typing import NDArray
+import numpy as np
+from numpy.typing import DTypeLike, NDArray
 
 azimuthal_2_spin_dict: Dict[str, Union[str, Tuple[float]]] = {
     "s": "",
@@ -27,7 +26,8 @@ def get_orbital(azimuthal_qn: int) -> Optional[str]:
 
 
 def get_spin_as_string(azimuthal_qn: int, spin_qn: float) -> Optional[str]:
-    """Translates a spin quantum number float into a string represing the coresponding fraction.
+    """Translates a spin quantum number float into a string
+    represing the coresponding fraction.
 
     Args:
         azimuthal_qn: the azimuthal quantum number
@@ -55,9 +55,11 @@ def q_param(
     azimuthal_qn: int,
     spin_qn: float,
     plotter: Optional[int] = 1,
+    dtype: DTypeLike = np.float64,
 ) -> Optional[Tuple[NDArray]]:
     """
-    Gets the q params from the data_file for a specific principle, azimuthal, and spin quantum number.
+    Gets the q params from the data_file for a specific
+    principal, azimuthal, and spin quantum number.
 
     Args:
         data_file: path to file with data in it
@@ -79,31 +81,31 @@ def q_param(
         name = f"{Z} {principal_qn}{get_orbital(azimuthal_qn)}{get_spin_as_string(azimuthal_qn,spin_qn)}"
         for line in param_file:
             if line.strip() == name:
-                Eb = numpy.fromstring(param_file.readline(), int, sep=" ")
-                Erow = numpy.fromstring(param_file.readline(), int, sep=" ")
-
-                sigma = numpy.stack(
+                Eb = np.fromstring(param_file.readline(), dtype, sep=" ")
+                Erow = np.fromstring(param_file.readline(), dtype, sep=" ")
+                # TODO is this needed
+                _ = np.stack(
                     [
                         Erow,
-                        numpy.fromstring(param_file.readline(), numpy.float64, sep=" "),
+                        np.fromstring(param_file.readline(), dtype, sep=" "),
                     ]
                 )
-                beta = numpy.stack(
+                beta = np.stack(
                     [
                         Erow,
-                        numpy.fromstring(param_file.readline(), numpy.float64, sep=" "),
+                        np.fromstring(param_file.readline(), dtype, sep=" "),
                     ]
                 )
-                gamma = numpy.stack(
+                gamma = np.stack(
                     [
                         Erow,
-                        numpy.fromstring(param_file.readline(), numpy.float64, sep=" "),
+                        np.fromstring(param_file.readline(), dtype, sep=" "),
                     ]
                 )
-                delta = numpy.stack(
+                delta = np.stack(
                     [
                         Erow,
-                        numpy.fromstring(param_file.readline(), numpy.float64, sep=" "),
+                        np.fromstring(param_file.readline(), dtype, sep=" "),
                     ]
                 )
                 return (beta, gamma, delta, Eb)

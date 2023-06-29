@@ -1,5 +1,3 @@
-import math
-
 import numpy as np
 from constants import ANG, CSPEED, EJ, H
 from numpy.typing import NDArray
@@ -8,7 +6,7 @@ from numpy.typing import NDArray
 def calculate_energy(
     lps: NDArray[np.float64], hkl_plane: NDArray[np.float64], Bragg_angle: float
 ) -> float:
-    """Calculates the energy
+    """Calculates the energy of the lattice unit cell
 
     Args:
         lps: lattice unit cell
@@ -51,7 +49,9 @@ def calculate_energy(
                 / np.sin(lps[5]),
             ],
         ]
-    )  # Real space lattice vectors a, b, and c in Cartesian coordinates with a parallel to X and b in the XY plane
+    )
+    # Real space lattice vectors a, b, and c in Cartesian coordinates
+    # with a parallel to X and b in the XY plane
 
     rlvs = (
         np.array(
@@ -76,6 +76,6 @@ def calculate_energy(
 
     dhkl: float = np.sqrt(np.sum(rlv**2)) ** (-1)  # 1/sqrt(sum(abs(plane2*rlvs).^2))
 
-    lam: float = 2 * dhkl * ANG * math.sin(math.radians(Bragg_angle))
+    lam: float = 2 * dhkl * ANG * np.sin(np.deg2rad(Bragg_angle))
 
     return H * CSPEED / lam / EJ
