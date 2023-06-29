@@ -109,5 +109,3 @@ Z: List[str] = [
     "Md",
     "No",
 ]
-
-print(Z.index("Cu") + 1)

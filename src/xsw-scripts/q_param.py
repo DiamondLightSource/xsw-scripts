@@ -45,7 +45,7 @@ def get_spin_as_string(azimuthal_qn: int, spin_qn: float) -> Optional[str]:
         numerator, denominator = spin_qn.as_integer_ratio()
         return f"{numerator}/{denominator}"
 
-    raise Exception(f"the {orbital} orbital cannot have a js of: {spin_qn}")
+    raise KeyError(f"The {orbital} orbital cannot have a js of: {spin_qn}")
 
 
 def q_param(
@@ -83,7 +83,7 @@ def q_param(
             if line.strip() == name:
                 Eb = np.fromstring(param_file.readline(), dtype, sep=" ")
                 Erow = np.fromstring(param_file.readline(), dtype, sep=" ")
-                # TODO is this needed
+                # TODO is the sigma here needed
                 _ = np.stack(
                     [
                         Erow,

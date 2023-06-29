@@ -8,7 +8,7 @@ from calculate_energy import calculate_energy
 from numpy.typing import NDArray
 from q_param import q_param
 
-THETAB = 90 - 4  # thetaB
+THETAB = 90 - 4
 
 
 def predict_modulation(
@@ -456,7 +456,7 @@ def predict_modulation(
     rscale = 1  # (np.max(datar[:,1]) - 0.5 * (datar[-1,1] + datar[0,1])) / 0.9 * 3
     rbgoffset = 0  # 0.5 * (datar[-1,1] + datar[0,1]) / rscale
 
-    # TODO look at this section again
+    # TODO This closure is the first place to look for bugs
     def f1(p: NDArray) -> Tuple[NDArray, ...]:
         p = np.array(
             [
@@ -594,7 +594,7 @@ def predict_modulation(
     # ########################################
 
     if plotter == 1:
-        plt.figure(100)
+        plt.figure()
 
         # Plot XSW profiles (relative to Bragg reflection)
         # Plot fits (relative to Bragg reflection)
@@ -604,11 +604,11 @@ def predict_modulation(
         # Label plots
         plt.xlabel("E - E_Bragg (eV)", fontsize=20, fontweight="bold", color="k")
         plt.ylabel("Relative Absorption", fontsize=20, fontweight="bold", color="k")
-        plt.xticks(fontsize=20)
-        plt.yticks(fontsize=20)
+        plt.xticks(fontsize=10)
+        plt.yticks(fontsize=10)
 
         plt.axis([-3, 5, -0.1, 3.5])
-        # plt.show()
+        plt.show()
         # plt.savefig(dataprefix + '.pdf')
         # plt.savefig(dataprefix + '.svg')
 
