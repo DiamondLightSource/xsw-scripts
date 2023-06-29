@@ -5,12 +5,13 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: Current File",
+            "name": "Test script",
             "type": "python",
             "request": "launch",
             "program": "src/xsw-scripts/__main__.py",
             "console": "integratedTerminal",
-            "justMyCode": true
-        }
+            "args": [],
+            "justMyCode": false
+        },
     ]
 }
