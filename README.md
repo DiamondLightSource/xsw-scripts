@@ -11,13 +11,13 @@ Install dependencies in a venv
     pip install .
 ```
 
-Run example
+Run timed example
 ```bash
     python src/xsw-scripts/__main__.py
 ```
-This will run with the arguments in \__main__.py show the time it took to run.
+This will run with the arguments in \__main__.py .
 
-## Use
+## Usage
 
 ```python
     from xsw_scripts import predict_modulation
