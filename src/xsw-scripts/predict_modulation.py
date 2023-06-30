@@ -13,8 +13,8 @@ THETAB = 90 - 4
 
 def predict_modulation(
     data_dir: Path,
-    fh0: float,
-    ph0: float,
+    coherent_fraction: float,
+    coherent_position: float,
     theta: float,
     plotter: bool,
     *,
@@ -27,7 +27,7 @@ def predict_modulation(
     lps0: Optional[NDArray] = None,
     xyzs: Optional[NDArray] = None,
     width: float = 0.2,
-) -> Any:
+) -> Tuple[NDArray, ...]:
     """calcuates XSW absorption profile from inputted parameters.
 
     Args:
@@ -91,7 +91,7 @@ def predict_modulation(
 
     fwhmgaus = width
 
-    ####################################################################
+    # ###################################################################
     # Non-dipolar corrections, assuming delta=0
     #  C1=(1+Q)/(1-Q), C2=1/(1-Q), C3=phase shift
     #  Row1=Ek, Row2=No correction, Row3=C1s, Row4=N1s, Row5=O1s, Row6=Fe2p3/2
@@ -101,7 +101,7 @@ def predict_modulation(
     #  delta, beta (delta however is set to 0 as the effect is very small !! ( ompare Ref[1]))
     #  for Fe2p, compared to gamma, delta is one order or magnitude less big
     #
-    #  non dipolar corrections in the order: photon energy, 0 ,C1s, N1s, O1s,
+    #  Non dipolar corrections in the order: photon energy, 0 ,C1s, N1s, O1s,
     #  Fe2p3/2 (delta term newly inserted on 14.07.2014 to deal correctly with Fe2p)
 
     QCE = 0
@@ -132,6 +132,7 @@ def predict_modulation(
 
     hm = np.array([1, 1, 1])
 
+    # TODO replace magic number with a constant
     wavelength = 12398.54 / energy  # Wavelength in A
 
     DWBs = 0.0  # Debye-Waller B factor, sample.
@@ -159,8 +160,6 @@ def predict_modulation(
     # Atomic number, x, y, z, occupancy (Mono Si)
 
     nam = xyzm.shape[0]
-
-    # TODO ask about this
     xyzm[:, 1:4] = xyzm[:, 1:4] - np.ones((nam, 3)) * 0.125
     # Shift the origin to the inversion center
 
@@ -240,9 +239,6 @@ def predict_modulation(
     thbs = np.arcsin(dhs ** (-1) * (wavelength / 2))  # Bragg angle in rad, sample.
     thbm = np.arcsin(dhm ** (-1) * (wavelength / 2))  # Bragg angle in rad, mono Si.
 
-    # z=['Ag' 'Cu' 'Si'];
-    # Si','P','S','Cl','Ar','K','Ca','Sc','Ti','V','Cr','Mn','Fe','Co','Ni','Cu','Zn','Ga','Ge','As','Se','Br','Kr','Rb','Sr','Y','Zr','Nb','Mo','Tc','Ru','Rh','Pd','Ag','Cd','In','Sn','Sb','Te','I','Xe','Cs','Ba','La','Ce','Pr','Nd','Pm','Sm','Eu','Gd','Tb','Dy','Ho','Er','Tm','Yb','Lu','Hf','Ta','W','Re','Os','Ir','Pt','Au','Hg','Tl','Pb','Bi','Po','At','Rn','Fr','Ra','Ac','Th','Pa','U','Np','Pu','Am','Cm','Bk','Cf','Es','Fm','Md','No'];
-
     ##########################################
     # Structure factors and chi values, sample
     ##########################################
@@ -254,7 +250,6 @@ def predict_modulation(
     f0s = np.zeros(nas, dtype="complex_")
 
     for i in range(nas):
-        # TODO re think this part
         fpfppdata = np.loadtxt(
             data_dir / Path(constants.Z[int(xyzs[i, 0]) - 1].lower() + ".nff"),
             delimiter="\t",
@@ -391,7 +386,6 @@ def predict_modulation(
     )
 
     rs = np.abs(xs) ** 2
-    # rs[2754] * 10 ** 4
 
     ######################################################
     # Convolution 1 (sample rocking curve  gaussian)
@@ -446,7 +440,6 @@ def predict_modulation(
     #############################################################################
 
     rsgm = np.convolve(rmn, rs, mode="full")
-    # rsgm(3500)*10^4
 
     #########################
     # Fit rocking curve
@@ -535,8 +528,8 @@ def predict_modulation(
     # Fit XSW yield curve
     ###########################
 
-    q0 = np.array([1, fh0, ph0], dtype=np.float64)
-    q = np.array([1, fh0, ph0], dtype=np.float64)
+    q0 = np.array([1, coherent_fraction, coherent_position], dtype=np.float64)
+    q = np.array([1, coherent_fraction, coherent_position], dtype=np.float64)
 
     ys = rs * C1 + 2 * C2 * q[1] * np.sqrt(rs) * np.cos(
         C3 + np.arctan2(np.imag(xs), np.real(xs)) - 2 * np.pi * q[2]
@@ -614,8 +607,8 @@ def predict_modulation(
 
     the_out = np.column_stack((desgm, ysgm))
     the_nix_out = np.column_stack((desgm, rsga))
-    fit_out = [the_out, the_nix_out]
-    q = q[1:]
+    fit_out = (the_out, the_nix_out)
+    # q = q[1:]
 
     # #####################################
     # ####   write out data      ##########
@@ -657,3 +650,5 @@ def predict_modulation(
     # combine = np.column_stack((desgm, rsgm))
     # np.savetxt(filename, combine, delimiter='\t', newline='\r\n', \
     # fmt='%.10f', append=True)
+
+    return fit_out
