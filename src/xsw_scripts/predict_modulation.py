@@ -8,8 +8,6 @@ from calculate_energy import calculate_energy
 from numpy.typing import NDArray
 from q_param import q_param
 
-THETAB = 90 - 4
-
 
 def predict_modulation(
     data_dir: Path,
@@ -27,6 +25,10 @@ def predict_modulation(
     lps0: Optional[NDArray] = None,
     xyzs: Optional[NDArray] = None,
     width: float = 0.2,
+    thetaB: float = 90 - 4,
+    qce: float = 0,
+    dwb_factor: float = 0,
+    hm: Tuple[int, ...] = (1, 1, 1),
 ) -> Tuple[NDArray, ...]:
     """calcuates XSW absorption profile from inputted parameters.
 
@@ -78,7 +80,7 @@ def predict_modulation(
             dtype=np.float64,
         )
 
-    energy = calculate_energy(lps0.copy(), hkl_index, THETAB)
+    energy = calculate_energy(lps0.copy(), hkl_index, thetaB)
     bettab, gamtab, deltab, Eb = q_param(
         data_dir / Path("q_param.txt"),
         atom_type,
@@ -104,18 +106,17 @@ def predict_modulation(
     #  Non dipolar corrections in the order: photon energy, 0 ,C1s, N1s, O1s,
     #  Fe2p3/2 (delta term newly inserted on 14.07.2014 to deal correctly with Fe2p)
 
-    QCE = 0
     # Analyser-beam geometry
     the = theta * np.pi / 180  # Theta angle in FIG1 in Ref[1]
     phie = 0 * np.pi / 180  # Phi angle in FIG1 in Ref[1]
 
     test_E = np.arange(1500, 5001, 10)
 
-    beta = np.interp(test_E, bettab[0, :], bettab[QCE + 1, :])
-    gamma = np.interp(test_E, gamtab[0, :], gamtab[QCE + 1, :])
-    delta = np.interp(test_E, deltab[0, :], deltab[QCE + 1, :])
+    beta = np.interp(test_E, bettab[0, :], bettab[qce + 1, :])
+    gamma = np.interp(test_E, gamtab[0, :], gamtab[qce + 1, :])
+    delta = np.interp(test_E, deltab[0, :], deltab[qce + 1, :])
 
-    energy_diff = test_E - energy + Eb[QCE]
+    energy_diff = test_E - energy + Eb[qce]
     min_index = np.argmin(np.abs(energy_diff))
     bet, gam, del_ = beta[min_index], gamma[min_index], delta[min_index]
 
@@ -130,12 +131,8 @@ def predict_modulation(
     C2 = 1 / (1 - Q)
     C3 = 0
 
-    hm = np.array([1, 1, 1])
-
-    # TODO replace magic number with a constant
     wavelength = 12398.54 / energy  # Wavelength in A
 
-    DWBs = 0.0  # Debye-Waller B factor, sample.
     nas = xyzs.shape[0]
 
     # Si monochromator
@@ -269,12 +266,12 @@ def predict_modulation(
     hrs = xyzs[:, 1:4] @ np.array(hkl_index).T
 
     Fhs = (np.exp(2 * np.pi * 1j * hrs.T) @ (fs * xyzs[:, 4])) * np.exp(
-        -DWBs / dhs**2 / 4
+        -dwb_factor / dhs**2 / 4
     )
     Fhbs = (np.exp(-2 * np.pi * 1j * hrs.T) @ (fs * xyzs[:, 4])) * np.exp(
-        -DWBs / dhs**2 / 4
+        -dwb_factor / dhs**2 / 4
     )
-    F0s = np.sum(f0s * xyzs[:, 4]) * np.exp(-DWBs / dhs**2 / 4)
+    F0s = np.sum(f0s * xyzs[:, 4]) * np.exp(-dwb_factor / dhs**2 / 4)
 
     gams = 2.818e-5 * wavelength**2 / np.pi / ucvs
     chihs = -gams * Fhs
@@ -291,7 +288,6 @@ def predict_modulation(
     f0m = np.zeros(nam, dtype="complex_")
 
     for i in range(nam):
-        # TODO Re think this part
         fpfppdata = np.loadtxt(
             data_dir / Path(constants.Z[int(xyzm[i, 0]) - 1].lower() + ".nff"),
             delimiter="\t",
@@ -345,7 +341,7 @@ def predict_modulation(
     #   di is the angle between photon incidence and the surface away from the
 
     di = 45 / 180 * np.pi
-    bs = -np.sin(np.deg2rad(THETAB - alphaB)) / np.sin(np.deg2rad(THETAB + alphaB))
+    bs = -np.sin(np.deg2rad(thetaB - alphaB)) / np.sin(np.deg2rad(thetaB + alphaB))
     Ps = 1.0
     ewidths = (
         energy * np.abs(np.real(chihs) * Ps) / np.sin(thbs) ** 2 / np.sqrt(np.abs(bs))
