@@ -27,7 +27,10 @@ def predict_modulation(
     width: float = 0.2,
     thetaB: float = 90 - 4,
     qce: float = 0,
-    dwb_factor: float = 0,
+    dwb_sample: float = 0,
+    lpm0: Optional[NDArray] = None,
+    xyzm: Optional[NDArray] = None,
+    dwb_mono: float = 0,
     hm: Tuple[int, ...] = (1, 1, 1),
 ) -> Tuple[NDArray, ...]:
     """calcuates XSW absorption profile from inputted parameters.
@@ -39,33 +42,27 @@ def predict_modulation(
         coherent_position: coherent position
         theta: angle between the measured emission direction and the photon
             polarisation (for most I09 stuff this is 18)
-        plotter: if greater than zero plots figures and outputs text to the command line
-
+        plotter: If True plots figures and outputs text to the command line
         atom_type: Z value of the emitter atom (e.g. 8 for oxygen)
         principal_qn: principle quantum number, n, for photoelectron emitting orbital
-        azimuthal_qn: azimuthal quantum number, l, for photoelectron emitting orbital,
-                e.g. 0 for s, 1 for l, 2 for d, 3 for f
+        azimuthal_qn: azimuthal quantum number, l, for photoelectron emitting orbital
         spin_qn: total spin, js = l+ms, for photoelectron emitting orbital
-                e.g. 3/2 for the Ti 2p 3/2 level. For an s orbital set to 1/2
         alphaB: angle between the scattering plane and the surface, usually 0
         hkl_index: (h,k,l) index of the reflection, e.g. [1,1,1] for the (111)
-        lps0: lattice unit cell = [a b c, alpha beta gamma] in Å and °.
-                e.g. for Cu: = [3.6149,3.6149,3.6149, 90,90,90]
-        xyzs: position of atoms in the unit cell in fractional
-                    coordinates and an occupational factor (usually 1) in the
-                    format [Z, x, y, z, f], e.g. for fcc Cu:
-                    = [29, 0.0, 0.0, 0.0, 1;
-                        29, 0.5, 0.5, 0.0, 1;
-                        29, 0.5, 0.0, 0.5, 1;
-                        29, 0.0, 0.5, 0.5, 1;]
+        lps0: lattice unit cell = [a b c, alpha beta gamma] in Å and °
+        xyzs: position of atoms in the unit cell in fractional coordinates and an occupational factor (usually 1) in the format [Z, x, y, z, f],
         width: gaussian broadening, models the experimental
               broadening due to imperfections in the monochromator (pretty small)
               and the sample substrate (significantly larger). Numbers between
               0.1 and 0.5 eV are common, 0.3 is broadly the mean
         thetaB: Bragg angle
         qce: Analyser-beam geometry ?
-        dwb_factor: Debye-Waller B factor, mono.
+        dwb_sample: Debye-Waller B factor, sample
         hm: Mono Si reflection,
+        dwb_mono = Debye-Waller B factor, mono.
+        lpm0: Lattice parameters for  Si monochromator
+        xyzm: Atomic coordinates, for Si monochromator
+        dwb_mono: float = 0,
     """
     if lps0 is None:
         a_lat = 3.6149
@@ -83,6 +80,28 @@ def predict_modulation(
             ],
             dtype=np.float64,
         )
+
+    # Si monochromator
+    if lpm0 is None:
+        lpm0 = np.array(
+            [5.431, 5.431, 5.431, 90, 90, 90], dtype=np.float64
+        )  # Lattice parameters, DW factor and atomic coordinates, Si monochromator
+
+    if xyzm is None:
+        xyzm = np.array(
+            [
+                [14, 0, 0, 0, 1],
+                [14, 0.5, 0.5, 0, 1],
+                [14, 0.5, 0, 0.5, 1],
+                [14, 0, 0.5, 0.5, 1],
+                [14, 0.25, 0.25, 0.25, 1],
+                [14, 0.75, 0.75, 0.25, 1],
+                [14, 0.75, 0.25, 0.75, 1],
+                [14, 0.25, 0.75, 0.75, 1],
+            ],
+            dtype=np.float64,
+        )
+        # Atomic number, x, y, z, occupancy (Mono Si)
 
     energy = calculate_energy(lps0.copy(), hkl_index, thetaB)
     bettab, gamtab, deltab, Eb = q_param(
@@ -138,27 +157,6 @@ def predict_modulation(
     wavelength = 12398.54 / energy  # Wavelength in A
 
     nas = xyzs.shape[0]
-
-    # Si monochromator
-    lpm0 = np.array(
-        [5.431, 5.431, 5.431, 90, 90, 90], dtype=np.float64
-    )  # Lattice parameters, DW factor and atomic coordinates, Si monochromator
-    DWBm = 0.0  # Debye-Waller B factor, mono.
-
-    xyzm = np.array(
-        [
-            [14, 0, 0, 0, 1],
-            [14, 0.5, 0.5, 0, 1],
-            [14, 0.5, 0, 0.5, 1],
-            [14, 0, 0.5, 0.5, 1],
-            [14, 0.25, 0.25, 0.25, 1],
-            [14, 0.75, 0.75, 0.25, 1],
-            [14, 0.75, 0.25, 0.75, 1],
-            [14, 0.25, 0.75, 0.75, 1],
-        ],
-        dtype=np.float64,
-    )
-    # Atomic number, x, y, z, occupancy (Mono Si)
 
     nam = xyzm.shape[0]
     xyzm[:, 1:4] = xyzm[:, 1:4] - np.ones((nam, 3)) * 0.125
@@ -234,7 +232,7 @@ def predict_modulation(
     )  # Bragg plane spacing for hkl reflection in A, sample.
 
     dhm = lpm[0] / np.sqrt(
-        np.sum(hm @ hm.T)
+        np.sum(hm @ np.array(hm).T)
     )  # Bragg plane spacing for hkl reflection in A, mono Si.
 
     thbs = np.arcsin(dhs ** (-1) * (wavelength / 2))  # Bragg angle in rad, sample.
@@ -270,12 +268,12 @@ def predict_modulation(
     hrs = xyzs[:, 1:4] @ np.array(hkl_index).T
 
     Fhs = (np.exp(2 * np.pi * 1j * hrs.T) @ (fs * xyzs[:, 4])) * np.exp(
-        -dwb_factor / dhs**2 / 4
+        -dwb_sample / dhs**2 / 4
     )
     Fhbs = (np.exp(-2 * np.pi * 1j * hrs.T) @ (fs * xyzs[:, 4])) * np.exp(
-        -dwb_factor / dhs**2 / 4
+        -dwb_sample / dhs**2 / 4
     )
-    F0s = np.sum(f0s * xyzs[:, 4]) * np.exp(-dwb_factor / dhs**2 / 4)
+    F0s = np.sum(f0s * xyzs[:, 4]) * np.exp(-dwb_sample / dhs**2 / 4)
 
     gams = 2.818e-5 * wavelength**2 / np.pi / ucvs
     chihs = -gams * Fhs
@@ -307,14 +305,14 @@ def predict_modulation(
         )
         f0m[i] = xyzm[i, 0] + fpm[i] + 1j * fppm[i]
 
-    hrm = xyzm[:, 1:4] @ hm.T
+    hrm = xyzm[:, 1:4] @ np.array(hm).T
     Fhm = (np.exp(2 * np.pi * 1j * hrm.T) @ (fm * xyzm[:, 4])) * np.exp(
-        -DWBm / dhm**2 / 4
+        -dwb_mono / dhm**2 / 4
     )
     Fhbm = (np.exp(-2 * np.pi * 1j * hrm.T) @ (fm * xyzm[:, 4])) * np.exp(
-        -DWBm / dhm**2 / 4
+        -dwb_mono / dhm**2 / 4
     )
-    F0m = np.sum(f0m * xyzm[:, 4]) * np.exp(-DWBm / dhm**2 / 4)
+    F0m = np.sum(f0m * xyzm[:, 4]) * np.exp(-dwb_mono / dhm**2 / 4)
 
     gamm = 2.818e-5 * wavelength**2 / np.pi / ucvm
     chihm = -gamm * Fhm

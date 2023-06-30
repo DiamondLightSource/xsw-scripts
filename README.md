@@ -1,5 +1,5 @@
 # xsw-scripts
-Translating matlab scripts for xsw data generation to python.
+Least-square fitting of theoretical rocking curves and XSW yield curves to data in energy.
 
 ## Running the example
 
@@ -7,7 +7,7 @@ Install dependencies in a venv
 
 ```bash
     python -m venv venv
-    source myvenv/bin/activate
+    source venv/bin/activate
     pip install .
 ```
 
