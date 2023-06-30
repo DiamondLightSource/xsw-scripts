@@ -62,6 +62,10 @@ def predict_modulation(
               broadening due to imperfections in the monochromator (pretty small)
               and the sample substrate (significantly larger). Numbers between
               0.1 and 0.5 eV are common, 0.3 is broadly the mean
+        thetaB: Bragg angle
+        qce: Analyser-beam geometry ?
+        dwb_factor: Debye-Waller B factor, mono.
+        hm: Mono Si reflection,
     """
     if lps0 is None:
         a_lat = 3.6149
@@ -336,11 +340,7 @@ def predict_modulation(
     #########################
     # Sample rocking curve
     ############################
-    #   df is the angle between photon incidence and the surface towards the
-    #   detector
-    #   di is the angle between photon incidence and the surface away from the
 
-    di = 45 / 180 * np.pi
     bs = -np.sin(np.deg2rad(thetaB - alphaB)) / np.sin(np.deg2rad(thetaB + alphaB))
     Ps = 1.0
     ewidths = (
@@ -475,7 +475,7 @@ def predict_modulation(
 
         e = desgm
 
-        return e, a1
+        return e, a1, rsga
 
     # Define the scaling factors
     multiples_p = np.array([10, 1e-3, 1e-4, 1e3, 1e2], dtype=np.float64)
@@ -493,7 +493,7 @@ def predict_modulation(
     )
 
     p = p0
-    v, a1 = f1(p0)
+    v, a1, rsga = f1(p0)
     p = np.array(
         [
             p[0] / multiples_p[0],

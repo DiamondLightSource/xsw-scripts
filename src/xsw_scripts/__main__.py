@@ -2,6 +2,7 @@ import time
 from pathlib import Path
 
 import numpy as np
+
 from xsw_scripts.predict_modulation import predict_modulation
 
 start = time.monotonic()
