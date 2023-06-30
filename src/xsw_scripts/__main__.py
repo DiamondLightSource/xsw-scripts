@@ -2,11 +2,11 @@ import time
 from pathlib import Path
 
 import numpy as np
-from predict_modulation import predict_modulation
+from xsw_scripts.predict_modulation import predict_modulation
 
 start = time.monotonic()
 predict_modulation(
-    Path("src/xsw-scripts/fpfpp/"),
+    Path("src/xsw_scripts/fpfpp/"),
     1,
     1,
     18,

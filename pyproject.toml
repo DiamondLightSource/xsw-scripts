@@ -3,12 +3,7 @@ requires = ["setuptools>=64", "setuptools_scm[toml]>=6.2", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "xsw-scripts"
-classifiers = [
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-]
+name = "xsw_scripts"
 description = "Translating xsw data generation scripts to python."
 dependencies = [
     "typing-extensions;python_version<'3.9'",
@@ -16,9 +11,8 @@ dependencies = [
     "scipy"
 ] # Add project dependencies here, e.g. ["click", "numpy"]
 dynamic = ["version"]
-license.file = "LICENSE"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.6"
 
 [project.optional-dependencies]
 dev = [
@@ -31,7 +25,7 @@ dev = [
 
 
 [[project.authors]] # Further authors may be added by duplicating this section
-email = "tizayi0@gmail.com"
+email = "tizayi.zirereza@diamond.ac.uk"
 name = "tizayi"
 
 
