@@ -1,5 +1,5 @@
 # xsw-scripts
-Least-square fitting of theoretical rocking curves and XSW yield curves to data in energy.
+Generating Xray Standing Wave data.
 
 ## Running the example
 
@@ -20,29 +20,31 @@ This will run with the arguments in \__main__.py .
 ## Usage
 
 ```python
-    from xsw_scripts import predict_modulation
+import numpy as np
+from xsw_scripts import predict_modulation
+from pathlib import Path
 
-    fit_out = predict_modulation(
-        Path("src/xsw_scripts/fpfpp/"),
-        1,
-        1,
-        18,
-        False,
-        atom_type=8,
-        principal_qn=1,
-        azimuthal_qn=0,
-        spin_qn=0.5,
-        alphaB=0,
-        hkl_index=(1, 1, 1),
-        lps0=np.array([3.6149, 3.6149, 3.6149, 90, 90, 90]),
-        xyzs=np.array(
-            [
-                [29, 0.0, 0.0, 0.0, 1],
-                [29, 0.5, 0.5, 0.0, 1],
-                [29, 0.5, 0.0, 0.5, 1],
-                [29, 0.0, 0.5, 0.5, 1],
-            ]
-        ),
-        width=0.2,
-        )
+fit_out = predict_modulation(
+    data_dir = Path("src/xsw_scripts/fpfpp/"),
+    coherent_fraction= 1,
+    coherent_position=1 ,
+    theta= 18,
+    plotter = False,
+    atom_type=8,
+    principal_qn=1,
+    azimuthal_qn=0,
+    spin_qn=0.5,
+    alphaB=0,
+    hkl_index=(1, 1, 1),
+    lps0=np.array([3.6149, 3.6149, 3.6149, 90, 90, 90]),
+    xyzs=np.array(
+        [
+            [29, 0.0, 0.0, 0.0, 1],
+            [29, 0.5, 0.5, 0.0, 1],
+            [29, 0.5, 0.0, 0.5, 1],
+            [29, 0.0, 0.5, 0.5, 1],
+        ]
+    ),
+    width=0.2,
+    )
 ```
