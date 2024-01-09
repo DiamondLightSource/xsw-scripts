@@ -1,5 +1,5 @@
 # xsw-scripts
-Generating Xray Standing Wave data.
+Generating Xray Standing Wave Data.
 
 ## Running the example
 
