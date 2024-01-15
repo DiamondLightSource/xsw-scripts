@@ -5,18 +5,50 @@ from numpy.typing import NDArray
 from dataclasses import dataclass
 
 
+# could use builder pattern here
+# keep track to see how that works
 class Peak:
-    energy: float
-    gaussian_width: float
-    lorentzian_width: float
-    asymmetry: float
-    step_intensity_coefficient: float
-    peak_intensity: float
+    def __init__(self, energy_range: float, edge_marg: float) -> None:
+        self.energy = random.random() * (1 - 2 * edge_marg) + edge_marg
+        self.gaussian_width = random.random() * (energy_range / 4 - 0.1) + 0.1
+        self.lorentzian_width = random.random() * (energy_range / 4 - 0.1) + 0.1
+        asymmetry: random.random()
+        step_intensity_coefficient: random.random()
+        peak_intensity: random.random()
 
-    def __init__(self, edge_margin: float) -> None:
-        random_params = np.random.random_sample(6)
-        random_params[0] = random_params[0]* (1 - 2 * edge_margin) + edge_margin
+    def is_valid() -> bool:
+        return True
 
+
+"""
+Generate a new peak
+- Randomly intialise all properties with a number between 0 and 1
+- Rescale energy to not apprioach the margins
+- 
+
+"""
+
+
+"""
+Steps to create a new spectra
+
+    - There is a chance the spectrum has more peaks than expected (account for this)
+    - check peak position relative to each other (ignore one peak spectra)
+        - generate a binding energy range from [0,1] param
+        - reorder peaks by energy
+        - loop over pairs of peaks getting the energy of the peaks
+        - Get gaussian and lorentzian widths of the 2 peaks
+        - define energy threshold
+        - if lower than threshold discard that peak and try again
+        - get largest peak intensity
+        - then for each peak if it's intesnity is maller than ithreshold chnage to random value between threshold and max int
+        - reoder peaks interms of intensity
+    - recale 1st order background polynomial coefficient
+    -  Rescale binding energy range to the interval (5 eV, 50 eV).
+    - Convert all peak energies in all spectra from fractional to (relative) binding energy in eV.
+    - 
+
+"""
 
 
 @dataclass
@@ -30,41 +62,5 @@ class Spectra:
     peak_parameters: NDArray[np.float32]
     peaks: List[Peak]
 
-
-def gen_cs(
-    num_spectra: int,
-    seed: Optional[float] = None,
-    num_peaks: Optional[int] = None,
-    max_num_peaks: Optional[int] = 6,
-    edge_margin: float = 0.05,
-    width_seperation: float = 0.75,
-    min_allowed_intensity: float = 4,
-    min_slope: float = -0.5,
-    cutoff_higher: float = 0.95,
-) -> NDArray:
-    """Uses number generation to create a 2D Array of parameters which are used to build XP xp spectra
-
-    Each parameter, after being appropriately scaled, will eventually be used to describe specific features of the spectra
-    e.g. number of peaks, peak positions, widths, the noise intensity etc.
-
-     Arguments:
-    """
-    if seed:
-        random.seed(seed)
-
-    num_cs = max_num_peaks * 6 + 10
-    cs = np.array(
-        [[random.uniform(0, 1) for m in range(num_spectra)] for n in range(num_cs)],
-        dtype="float32",
-    )
-    print(cs.shape)
-
-    cs = np.random.random_sample((max_num_peaks * 6, num_spectra)).astype(np.float32)
-    print(cs.shape)
-
-    my_peak = Peak(*)
-    print(my_peak)
-
-
-if __name__ == "__main__":
-    gen_cs(7)
+    def get_energy_range(self):
+        return self.binding_energy_range * 45 + 5
