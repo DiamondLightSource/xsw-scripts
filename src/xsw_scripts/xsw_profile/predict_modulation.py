@@ -1,12 +1,12 @@
 from pathlib import Path
 from typing import Any, Optional, Tuple
 
-import constants
+from . import constants
 import matplotlib.pyplot as plt
 import numpy as np
-from calculate_energy import calculate_energy
+from .calculate_energy import calculate_energy
 from numpy.typing import NDArray
-from q_param import q_param
+from .q_param import q_param
 
 
 def predict_modulation(

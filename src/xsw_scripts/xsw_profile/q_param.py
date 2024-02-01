@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Dict, Optional, Tuple, Union
 
-import constants
+from . import constants
 import numpy as np
 from numpy.typing import DTypeLike, NDArray
 

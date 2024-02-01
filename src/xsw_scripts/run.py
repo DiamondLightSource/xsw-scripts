@@ -1,17 +1,17 @@
-import time
 from pathlib import Path
 
 import numpy as np
+from xsw_scripts.xps_datagen.DatasetObjects import SpectrumDataset
+from xsw_scripts.xsw_profile.predict_modulation import predict_modulation
 
-from xsw_scripts.predict_modulation import predict_modulation
-
-start = time.monotonic()
-predict_modulation(
-    Path("src/xsw_scripts/fpfpp/"),
-    1,
-    1,
-    18,
-    False,
+dataset = SpectrumDataset("gen", num_spectra=1, num_peaks=4, seed=6)
+print(dataset.inputs.shape)
+result = predict_modulation(
+    data_dir=Path("src/xsw_scripts/fpfpp/"),
+    coherent_fraction=0.8,
+    coherent_position=0,
+    theta=18,
+    plotter=False,
     atom_type=8,
     principal_qn=1,
     azimuthal_qn=0,
@@ -29,5 +29,4 @@ predict_modulation(
     ),
     width=0.2,
 )
-stop = time.monotonic()
-print(f"Time: {stop - start}")
+print(result[0].shape)

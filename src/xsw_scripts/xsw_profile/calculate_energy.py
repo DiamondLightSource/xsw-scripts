@@ -1,5 +1,5 @@
 import numpy as np
-from constants import ANG, CSPEED, EJ, H
+from .constants import ANG, CSPEED, EJ, H
 from numpy.typing import NDArray
 
 
