@@ -8,7 +8,9 @@ description = "Translating xsw data generation scripts to python."
 dependencies = [
     "typing-extensions;python_version<'3.9'",
     "numpy",
-    "matplotlib"
+    "matplotlib",
+    "scipy",
+    "h5py"
 ] # Add project dependencies here, e.g. ["click", "numpy"]
 dynamic = ["version"]
 readme = "README.md"

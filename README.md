@@ -13,9 +13,9 @@ Install dependencies in a venv
 
 Run timed example
 ```bash
-    python src/xsw-scripts/__main__.py
+    python src/xsw-scripts/run.py
 ```
-This will run with the arguments in \__main__.py .
+This will run with the arguments in \run.py .
 
 ## Usage
 

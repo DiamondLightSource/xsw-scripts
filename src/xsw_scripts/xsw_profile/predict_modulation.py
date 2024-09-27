@@ -245,8 +245,8 @@ def predict_modulation(
     f0 = np.loadtxt(data_dir / Path("f0_all_free_atoms.txt"))
     fps = np.zeros(nas)
     fpps = np.zeros(nas)
-    fs = np.zeros(nas, dtype="complex_")
-    f0s = np.zeros(nas, dtype="complex_")
+    fs = np.zeros(nas, dtype=np.complex64)
+    f0s = np.zeros(nas, dtype=np.complex64)
 
     for i in range(nas):
         fpfppdata = np.loadtxt(
@@ -286,8 +286,8 @@ def predict_modulation(
 
     fpm = np.zeros(nam)
     fppm = np.zeros(nam)
-    fm = np.zeros(nam, dtype="complex_")
-    f0m = np.zeros(nam, dtype="complex_")
+    fm = np.zeros(nam, dtype=np.complex64)
+    f0m = np.zeros(nam, dtype=np.complex64)
 
     for i in range(nam):
         fpfppdata = np.loadtxt(
@@ -364,7 +364,7 @@ def predict_modulation(
         / np.sqrt(np.abs(bs) * chihs * chihbs)
     )
 
-    xs = np.zeros(int(nsteps), dtype="complex_")
+    xs = np.zeros(int(nsteps), dtype=np.complex64)
     mask_pos = np.real(etas) >= 0
     mask_neg = np.real(etas) < 0
 
@@ -406,7 +406,7 @@ def predict_modulation(
         / np.sqrt(np.abs(bm) * chihm * chihbm)
     )
 
-    xm = np.zeros(int(nstepm), dtype="complex_")
+    xm = np.zeros(int(nstepm), dtype=np.complex64)
     mask_pos = np.real(etam) >= 0
     mask_neg = np.real(etam) < 0
 
