@@ -1,8 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from xsw_scripts.xps_datagen.NNDataBuilderPeter import *
+from xps_datagen.NNDataBuilderPeter import *
 
-def extend_cs(cs, num_peaks, modulations, lower_bound = -2, upper_bound = 2, plot = True, num_plots_x = 4, num_plots_y = 5):
+def extend_cs(cs, num_peaks, modulations, lower_bound = -2, upper_bound = 2, plot = False, num_plots_x = 4, num_plots_y = 5):
     #cs a 46 parameter array, where the 15th, 21st, 27th, 33rd, 39th, 45th correspond to the intensities of individual peaks
     if len(modulations) != num_peaks:
         print('number of modulations does not equal number of peaks.')
@@ -43,4 +43,22 @@ def extend_cs(cs, num_peaks, modulations, lower_bound = -2, upper_bound = 2, plo
         plt.show()
     
     
+    #obtained_spectra an n * 2 * k array
+    #n the number of elements of predict_modulation with e_bragg in [lower_bound, upper_bound]
+    #2* k array containing the energy scale and intensity scale
     return obtained_spectra
+
+def get_xsw_profile(xsw, cs, plot = False):
+    resized_spectra, e_range = resize_spectra(xsw)
+    e_scale = np.linspace(e_range[0][0], e_range[0][1], resized_spectra.shape[1])
+    sum_spectra = [0] * resized_spectra.shape[1]
+    for i in range(resized_spectra.shape[0]):
+        sum_spectra = sum_spectra + resized_spectra[i][:]
+
+    if plot:
+        plt.plot(e_scale, sum_spectra)
+        plt.vlines(cs[10], plt.ylim()[0], plt.ylim()[1])
+        plt.gca().invert_xaxis()
+        plt.show()
+
+    return(resized_spectra, e_scale)
