@@ -725,21 +725,24 @@ def build_2D_cnn(
         dropout_probabilites = [0.2, 0.2],
         learning_rate = 0.001,
         loss = 'mae',
-        metrics = ['mse']
+        metrics = ['mse'],
+        activations = ['relu', 'sigmoid']
 ):
+    """The equivalent of build_cnn, but for 2D data - the input shape is (504, 200, 1), and the convolutional layers are 2D rather than 1D.
+    Adds MaxPooling2D layers after each Conv2D layer to reduce the size (spatial dimensionality) of our data, and therefore the size of our networks"""
     model = ks.Sequential()
     model.add(ks.Input(dtype='float32', shape = input_shape)) #(batch_size, height, width, channels)
     for i in range(num_conv_layers):
-        model.add(ks.layers.Conv2D(filters = filters[i], kernel_size = kernels[i], padding = 'same', activation = 'relu'))
+        model.add(ks.layers.Conv2D(filters = filters[i], kernel_size = kernels[i], padding = 'same', activation = activations[0]))
         model.add(ks.layers.MaxPooling2D(pool_size = pooling_sizes[i], padding = 'same'))
 
     model.add(ks.layers.Flatten())
 
     for i in range(num_dense_layers - 1):
-        model.add(ks.layers.Dense(dense_neurons[i], activation='relu'))
+        model.add(ks.layers.Dense(dense_neurons[i], activation=activations[0]))
         model.add(ks.layers.Dropout(dropout_probabilites[i]))
     
-    model.add(ks.layers.Dense(dense_neurons[-1], activation = 'sigmoid'))
+    model.add(ks.layers.Dense(dense_neurons[-1], activation = activations[1]))
 
     model.compile(optimizer = ks.optimizers.Adam(learning_rate = learning_rate  ),
               loss = loss,
@@ -755,4 +758,59 @@ def build_2D_cnn(
         "metrics": metrics
 }
 
+    return model, hyper_params
+
+def build_2D_cnn_multi_out(input_shape = (504, 200, 1),
+        num_conv_layers = 6,
+        filters = [16, 32, 48, 64, 80, 96],
+        kernels = [5, 5, 5, 5, 5, 5],
+        pooling_sizes = [2, 2, 2, 2, 2, 2],
+        num_dense_layers = 3,
+        dense_neurons = [512, 128, 1],
+        dropout_probabilites = [0.2, 0.2],
+        learning_rate = 0.001,
+        loss = 'mae',
+        metrics = ['mse'],
+        activations = ['relu', 'sigmoid']
+        ):
+    """The equivalent of build_cnn_multi_out, but for 2D data - the input shape is (504, 200, 1), and the convolutional layers are 2D rather than 1D.
+    Adds MaxPooling2D layers after each Conv2D layer to reduce the size (spatial dimensionality) of our data, and therefore the size of our networks
+    Built using the keras functional API, rather than the sequential used elsewhere."""
+    inputs = ks.layers.Input(shape = input_shape)
+    x = ks.layers.Conv2D(filters = filters[0], kernel_size = kernels[0], padding = 'same', activation = activations[0])(inputs)
+    for i in range(num_conv_layers):
+        x = ks.layers.Conv2D(filters = filters[i], kernel_size = kernels[i], padding = 'same', activation = activations[0])(x)
+        x = ks.layers.MaxPooling2D(pool_size = pooling_sizes[i], padding = 'same')(x)
+
+    x = ks.layers.Flatten()(x)
+
+    for i in range(num_dense_layers - 1):
+        x = ks.layers.Dense(dense_neurons[i], activation=activations[0])(x)
+        x = ks.layers.Dropout(dropout_probabilites[i])(x)
+
+    outputs = []
+    loss_dict, metrics_dict = {}, {}
+    for i in range(dense_neurons[-1]):
+        layer_name = 'output_{}'.format(i)
+        outputs.append(ks.layers.Dense(units =1, activation = activations[i], name=layer_name)(x))
+        loss_dict[layer_name] = loss
+        metrics_dict[layer_name] = metrics
+
+    print(loss_dict)
+    print(metrics_dict)
+
+    model = ks.Model(inputs = inputs, outputs = outputs)
+
+    model.compile(optimizer = ks.optimizers.Adam(learning_rate = learning_rate),
+              loss = loss_dict,
+              metrics = metrics_dict)
+    
+    hyper_params = {
+        "learning_rate": learning_rate,
+        "filters": filters,
+        "kernels": kernels,
+        "pooling_sizes": pooling_sizes,
+        "dropout_probabilites": dropout_probabilites,
+        }
+    
     return model, hyper_params
