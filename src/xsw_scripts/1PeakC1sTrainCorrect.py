@@ -11,7 +11,7 @@ print(tf.config.list_logical_devices(), tf.config.list_physical_devices(), flush
 train_type = argv[1]
 
 NUM_PEAKS = 1
-batch_size = 250
+batch_size = 1000
 
 filename_format = '{}records{}.tfrecords'
 records_per_file = 10000
@@ -112,6 +112,18 @@ if train_type == 'Intensity':
                         ), num_parallel_calls=tf.data.AUTOTUNE
                       )
 
+if train_type == 'All':
+  train_dataset = train_dataset.map(map_func = lambda features:
+                        (features['xsw_curve'],
+                        tf.gather(features['cs_norm'], (10, 11, 12, 13, 14, 15))
+                        ), num_parallel_calls=tf.data.AUTOTUNE
+                      )
+  val_dataset = val_dataset.map(map_func = lambda features:
+                        (features['xsw_curve'],                             
+                        tf.gather(features['cs_norm'], (10, 11, 12, 13, 14, 15))
+                        ), num_parallel_calls=tf.data.AUTOTUNE
+                      )
+  
 train_dataset = train_dataset.shuffle(10000)
 train_dataset = train_dataset.batch(batch_size)
 train_dataset = train_dataset.prefetch(tf.data.AUTOTUNE)
@@ -124,22 +136,27 @@ val_dataset = val_dataset.repeat()
 
 model = keras.Sequential()
 model.add(keras.Input(dtype='float32', shape = (504, 200, 1))) #(batch_size, height, width, channels)
-model.add(keras.layers.Conv2D(filters = 16, kernel_size = (5,5), padding = 'same', activation='relu', strides = (2, 2)))
-#model.add(keras.layers.MaxPooling2D(pool_size=2, padding = 'same'))
-model.add(keras.layers.Conv2D(filters = 32, kernel_size = (5,5), padding = 'same', activation='relu', strides = (2, 2)))
-#model.add(keras.layers.MaxPooling2D(pool_size=2, padding = 'same'))
-model.add(keras.layers.Conv2D(filters = 64, kernel_size = (5,5), padding = 'same', activation='relu', strides = (2, 2)))
-#model.add(keras.layers.MaxPooling2D(pool_size=2, padding = 'same'))
-#model.add(keras.layers.Conv2D(filters = 80, kernel_size = (5,5), padding = 'same', activation='relu', strides = (2, 2)))
-#model.add(keras.layers.MaxPooling2D(pool_size=2, padding = 'same'))
-#model.add(keras.layers.Conv2D(filters = 64, kernel_size = (3,3), padding = 'same', activation='relu'))
-##model.add(keras.layers.MaxPooling2D(pool_size=2, padding = 'same'))
-#model.add(keras.layers.Conv2D(filters = 64, kernel_size = (3,3), padding = 'same', activation='relu'))
-#model.add(keras.layers.MaxPooling2D(pool_size=2, padding = 'same'))
+model.add(keras.layers.Conv2D(filters = 16, kernel_size = (5,5), padding = 'same', activation='relu'))
+model.add(keras.layers.MaxPooling2D(pool_size=2, padding = 'same'))
+model.add(keras.layers.Conv2D(filters = 32, kernel_size = (5,5), padding = 'same', activation='relu'))
+model.add(keras.layers.MaxPooling2D(pool_size=2, padding = 'same'))
+model.add(keras.layers.Conv2D(filters = 48, kernel_size = (5,5), padding = 'same', activation='relu'))
+model.add(keras.layers.MaxPooling2D(pool_size=2, padding = 'same'))
+model.add(keras.layers.Conv2D(filters = 64, kernel_size = (5,5), padding = 'same', activation='relu'))
+model.add(keras.layers.MaxPooling2D(pool_size=2, padding = 'same'))
+model.add(keras.layers.Conv2D(filters = 80, kernel_size = (5,5), padding = 'same', activation='relu'))
+model.add(keras.layers.MaxPooling2D(pool_size=2, padding = 'same'))
+model.add(keras.layers.Conv2D(filters = 96, kernel_size = (5,5), padding = 'same', activation='relu'))
+model.add(keras.layers.MaxPooling2D(pool_size=2, padding = 'same'))
 model.add(keras.layers.Flatten())
-#model.add(keras.layers.Dense(512, activation='relu'))
-#model.add(keras.layers.Dense(128, activation='relu'))
-model.add(keras.layers.Dense(1, activation = 'sigmoid'))
+model.add(keras.layers.Dense(512, activation='relu'))
+model.add(keras.layers.Dropout(0.2))
+model.add(keras.layers.Dense(128, activation='relu'))
+model.add(keras.layers.Dropout(0.2))
+if train_type != 'All':
+    model.add(keras.layers.Dense(1, activation = 'sigmoid'))
+else:
+    model.add(keras.layers.Dense(6, activation = 'sigmoid'))
 
 model.compile(optimizer = keras.optimizers.Adam(learning_rate = 0.001),
               loss = 'mae',
@@ -149,13 +166,12 @@ model.summary()
 
 
 currenttime = datetime.now()
-model_suffix = str(currenttime.day) + '-' + str(currenttime.strftime("%H:%M:%S"))
+model_suffix = '-' + str(currenttime.strftime("%d%m%H"))
 model_name = '{}/1PeakC1s{}Model{}.keras'.format(save_path, train_type, model_suffix)
-history_filename = '{}/{}TrainHistory{}'.format(save_path, train_type, model_suffix)
-
+history_filename = '{}/{}TrainHistory{}.pkl'.format(save_path, train_type, model_suffix)
 
 #tf.profiler.experimental.start('logdir')
-history = model.fit(train_dataset, epochs = 10, steps_per_epoch=train_size//batch_size, validation_data = val_dataset, validation_steps = val_size//batch_size)
+history = model.fit(train_dataset, epochs =10, steps_per_epoch=train_size//batch_size, validation_data = val_dataset, validation_steps = val_size//batch_size)
 #tf.profiler.experimental.stop()
 model.save(model_name)
 
